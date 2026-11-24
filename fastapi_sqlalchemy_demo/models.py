@@ -10,3 +10,5 @@ class TaskModel(Base):
     title: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # NUEVO: el front maneja prioridad (alta / media / baja)
+    priority: Mapped[str] = mapped_column(String(10), default="media", server_default="media", nullable=False)
