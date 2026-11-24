@@ -27,7 +27,7 @@ export function TaskCard({ task, onToggle, onDelete }: TaskCardProps) {
           <Text style={[styles.title, task.completed && styles.completed]}>{task.title}</Text>
           <View style={styles.row}>
             <Text style={[styles.priority, task.priority === 'alta' && styles.high]}>
-              {task.priority.toUpperCase()}
+              {(task.priority ?? 'media').toUpperCase()}
             </Text>
             <Text style={styles.dividerText}>·</Text>
             <Text style={styles.state}>{task.completed ? 'Completada' : 'Pendiente'}</Text>

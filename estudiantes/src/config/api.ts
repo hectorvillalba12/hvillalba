@@ -1,24 +1,30 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const API_PORT = 80;
+// Cambiá esto según dónde quieras conectarte:
+//   'remote' -> https://api.montenegroariel.com.ar (no necesitás levantar FastAPI)
+//   'local'  -> tu FastAPI corriendo en tu PC (uvicorn)
+const MODE: 'remote' | 'local' = 'remote';
 
-// Si la detección automática no te funciona, poné acá la IP de tu PC.
-// Ejemplo: 'http://192.168.0.15:8000'
-const MANUAL_API_URL = '';
+const REMOTE_API_URL = 'https://api.montenegroariel.com.ar';
+const LOCAL_API_PORT = 8000;
 
-function resolveApiUrl(): string {
-  if (MANUAL_API_URL) return MANUAL_API_URL;
+// Si la detección automática no te funciona en modo local,
+// poné acá la IP de tu PC. Ejemplo: 'http://192.168.0.15:8000'
+const MANUAL_LOCAL_URL = '';
 
-  // Expo sabe la IP de tu PC (ej: "192.168.0.15:8081"); le cambiamos el puerto al del back
+function resolveLocalUrl(): string {
+  if (MANUAL_LOCAL_URL) return MANUAL_LOCAL_URL;
+
+  // Expo conoce la IP de tu PC (ej: "192.168.0.15:8081"); le cambiamos el puerto
   const host = Constants.expoConfig?.hostUri?.split(':')[0];
-  //if (host) return `http://${host}:${API_PORT}`;
-  // Fallback: emulador Android usa 10.0.2.2 para llegar a la PC
+  if (host) return `http://${host}:${LOCAL_API_PORT}`;
+
+  // Fallback: el emulador de Android llega a tu PC por 10.0.2.2
   return Platform.OS === 'android'
-    ? `http://10.0.2.2:${API_PORT}`
-  // : `http://localhost:${API_PORT}`;
-      : `https://api.montenegroariel.com.ar/tasks/`
+    ? `http://10.0.2.2:${LOCAL_API_PORT}`
+    : `http://localhost:${LOCAL_API_PORT}`;
 }
 
-export const API_URL = `https://api.montenegroariel.com.ar`;//resolveApiUrl();
+export const API_URL = MODE === 'remote' ? REMOTE_API_URL : resolveLocalUrl();
 export const REQUEST_TIMEOUT_MS = 10000;

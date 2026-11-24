@@ -1,22 +1,29 @@
 import { API_URL, REQUEST_TIMEOUT_MS } from '../config/api';
 import type { Task, TaskPriority } from '../types/task';
 
-// Forma de la tarea tal como la devuelve el backend FastAPI
+// Forma de la tarea tal como la devuelve el backend FastAPI.
+// priority es opcional porque versiones viejas del servidor no la envían.
 type ApiTask = {
   id: number;
   title: string;
   description: string | null;
   completed: boolean;
-  priority: TaskPriority;
+  priority?: TaskPriority | null;
 };
+
+const VALID_PRIORITIES: TaskPriority[] = ['alta', 'media', 'baja'];
+
+function normalizePriority(value: unknown): TaskPriority {
+  return VALID_PRIORITIES.includes(value as TaskPriority) ? (value as TaskPriority) : 'media';
+}
 
 function fromApi(task: ApiTask): Task {
   return {
     id: String(task.id), // el front trabaja con ids string
     title: task.title,
     description: task.description ?? '',
-    priority: task.priority,
-    completed: task.completed,
+    priority: normalizePriority(task.priority),
+    completed: Boolean(task.completed),
   };
 }
 
@@ -76,11 +83,29 @@ export async function createTask(
 }
 
 export async function setTaskCompleted(id: string, completed: boolean): Promise<Task> {
-  const updated = await request<ApiTask>(`/tasks/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ completed }),
-  });
-  return fromApi(updated);
+  try {
+    const updated = await request<ApiTask>(`/tasks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ completed }),
+    });
+    return fromApi(updated);
+  } catch (caught) {
+    // Servidor sin PATCH: leemos la tarea y la actualizamos con PUT
+    if (caught instanceof Error && /HTTP (404|405)/.test(caught.message)) {
+      const current = await request<ApiTask>(`/tasks/${id}`);
+      const updated = await request<ApiTask>(`/tasks/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: current.title,
+          description: current.description ?? null,
+          completed,
+          priority: normalizePriority(current.priority),
+        }),
+      });
+      return fromApi(updated);
+    }
+    throw caught;
+  }
 }
 
 export async function removeTask(id: string): Promise<void> {
